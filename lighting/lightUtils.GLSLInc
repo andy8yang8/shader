@@ -1,0 +1,26 @@
+vec3 lighting( vec3 pos, vec3 nor, vec3 ro, vec3 rd) {
+  
+ 	vec3  ref = reflect( rd, nor );
+	float occ = calcAO( pos, nor );
+	vec3  lig = normalize( vec3(-0.6, 0.7, -0.5) );
+	float amb = clamp( 0.5+0.5*nor.y, 0.0, 1.0 );
+	float dif = clamp( dot( nor, lig ), 0.0, 1.0 );
+	float bac = clamp( dot( nor, normalize(vec3(-lig.x,0.0,-lig.z))), 0.0, 1.0 )*clamp( 1.0-pos.y,0.0,1.0);
+	float dom = smoothstep( -0.1, 0.1, ref.y );
+	float fre = pow( clamp(1.0+dot(nor,rd),0.0,1.0), 2.0 );
+	float spe = pow(clamp( dot( ref, lig ), 0.0, 1.0 ),16.0);
+
+	dif *= softshadow( pos, lig, 0.02, 2.5 );
+	dom *= softshadow( pos, ref, 0.02, 2.5 );
+
+	vec3 brdf = vec3(0.0);
+	brdf += 1.20 * dif * vec3(1.00,0.90,0.60);
+	brdf += 1.20 * spe * vec3(1.00,0.90,0.60) * dif;
+	brdf += 0.30 * amb * vec3(0.50,0.70,1.00) * occ;
+	brdf += 0.40 * dom * vec3(0.50,0.70,1.00) * occ;
+	brdf += 0.30 * bac * vec3(0.25,0.25,0.25) * occ;
+	brdf += 0.40 * fre * vec3(1.00,1.00,1.00) * occ;
+	brdf += 0.02;
+
+	return brdf;
+}

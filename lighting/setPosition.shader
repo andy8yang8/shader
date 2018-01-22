@@ -29,7 +29,7 @@ Shader "SetPosition"
 		//SDF
 		fixed map(fixed3 p)
 		{
-			const fixed R = 1.0;
+			const fixed R = 5.0;
 			//从镜头出发(ro),已经步进到p点用来取样，向量的长度减掉球半径
 			return length(p) - R;
 			//return p.y + dot(sin(p / 2. + cos(p.yzx / 2. + 3.14159 / 2.)), fixed3(.5,.5,.5));
@@ -64,12 +64,12 @@ Shader "SetPosition"
 			float time = 0.0;
 			//_Time.y;
 			fixed3 lk = fixed3(0, 3.5, time);  // "Look At" position.
-			fixed3 ro = lk + fixed3(0, .25, -.25); // Camera position, doubling as the ray origin.
+			fixed3 ro = lk + fixed3(0, 2.25, -.25); // Camera position, doubling as the ray origin.
 			//Light positioning. One is just in front of the camera, and the other is in front of that.
 			fixed3 lp = ro + fixed3(0, .75, 2);// Put it a bit in front of the camera.
 			fixed3 lp2 = ro + fixed3(0, .75, 9);// Put it a bit in front of the camera.
 			// Using the above to produce the unit ray-direction fixedtor.
-	   	fixed  FOV = 18.;
+	   	fixed  FOV = 20.;
 	   	fixed3 fwd = normalize(lk - ro);
 	   	fixed3 rgt = normalize(fixed3(fwd.z, 0., -fwd.x));
 	   	fixed3 up = cross(fwd, rgt);

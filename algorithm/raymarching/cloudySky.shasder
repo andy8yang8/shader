@@ -1,0 +1,137 @@
+Shader "Panda/Cloudy Sky"
+{
+	Properties{
+		_MainTex("MainTex", 2D) = "white" {}
+	}
+	SubShader
+	{
+		Tags{ "RenderType" = "Transparent" "Queue" = "Transparent" }
+	Pass
+	{
+		ZWrite Off
+		Blend SrcAlpha OneMinusSrcAlpha
+		CGPROGRAM
+		#pragma vertex vert
+		#pragma fragment frag
+		#include "util_v5.cginc"
+
+		struct VertexInput {
+			fixed4 vertex : POSITION;
+			fixed2 uv : TEXCOORD0;
+		};
+		struct VertexOutput {
+			fixed4 pos : SV_POSITION;
+			fixed2 uv : TEXCOORD0;
+		};
+
+		sampler2D _MainTex;
+
+		fixed4 integrate(in fixed4 sum, in fixed dif, in fixed den, in fixed3 bgcol, in fixed t)
+		{
+			//lighting
+			fixed3 lin = fixed3(0.65,0.7,0.75)*1.4 + fixed3(1.0, 0.6, 0.3)*dif;
+			fixed4 col = fixed4(lerp(fixed3(1.0,0.95,0.8), fixed3(0.25,0.3,0.35), den), den);
+			col.xyz *= lin;
+			col.xyz = lerp(col.xyz, bgcol, 1.0 - exp(-0.003*t*t));
+			//blending
+			col.a *= 0.4;
+			col.rgb *= col.a;
+			return sum + col * (1.0 - sum.a);
+		}
+		fixed4 MARCH(inout fixed4 sum,inout fixed t, fixed3 ro, fixed3 rd, fixed3 bgcol,sampler2D tex)
+		{
+			for (int i = 0; i < 30; i++)
+			{
+				fixed3  pos = ro + t * rd;
+				if (pos.y<-3.0 || pos.y>2.0 || sum.a > 0.99) break;
+				fixed den = map5(pos,tex);
+				if (den > 0.01)
+				{
+					fixed dif = 0.0;// clamp((den - map5(pos + 0.3*sundir)) / 0.6, 0.0, 1.0);
+					sum = integrate(sum, dif, den, bgcol, t);
+				}
+			t += max(0.05,0.02*t);
+			}
+			for (int ii = 0; ii < 30; ii++)
+			{
+				fixed3  pos = ro + t * rd;
+				if (pos.y<-3.0 || pos.y>2.0 || sum.a > 0.99) break;
+				fixed den = map4(pos,tex);
+				if (den > 0.01) {
+					fixed dif = 0.0;// clamp((den - map4(pos + 0.3*sundir)) / 0.6, 0.0, 1.0);
+					sum = integrate(sum, dif, den, bgcol, t);
+				}
+				t += max(0.05, 0.02*t);
+			}
+			for (int jj = 0; jj < 30; jj++)
+			{
+				fixed3  pos = ro + t * rd;
+				if (pos.y<-3.0 || pos.y>2.0 || sum.a > 0.99) break;
+				fixed den = map3(pos,tex);
+				if (den > 0.01) {
+					fixed dif = 0.0;// clamp((den - map3(pos + 0.3*sundir)) / 0.6, 0.0, 1.0);
+					sum = integrate(sum, dif, den, bgcol, t);
+				}
+				t += max(0.05, 0.02*t);
+			}
+			for (int kk = 0; kk < 30; kk++)
+			{
+				fixed3  pos = ro + t * rd;
+				if (pos.y<-3.0 || pos.y>2.0 || sum.a > 0.99) break;
+				fixed den = map2(pos,tex);
+				if (den > 0.01)
+			{
+				fixed dif = 0.0;// clamp((den - map2(pos + 0.3*sundir)) / 0.6, 0.0, 1.0);
+				sum = integrate(sum, dif, den, bgcol, t);
+			}
+				t += max(0.05, 0.02*t);
+			}
+			return sum;
+		}
+		fixed4 raymarch(in fixed3 ro, in fixed3 rd, in fixed3 bgcol, in fixed2 px,sampler2D tex)
+		{
+			fixed4 sum = 0.0;
+			fixed t = 0.05*tex2D(_MainTex, px).x;//<<
+			sum = MARCH(sum, t, ro,rd, bgcol,tex);
+			return clamp(sum, 0.0, 1.);
+		}
+		fixed3x3 setCamera(in fixed3 ro, in fixed3 ta, fixed cr)
+		{
+			fixed3 cw = normalize(ta - ro);
+			fixed3 cp = fixed3(sin(cr), cos(cr),0.0);
+			fixed3 cu = normalize(cross(cw,cp));
+			fixed3 cv = normalize(cross(cu,cw));
+			return fixed3x3(cu, cv, cw);
+		}
+		fixed4 render(in fixed3 ro, in fixed3 rd, in fixed2 px,sampler2D tex)
+		{
+			//background sky
+			fixed3 col = fixed3(0.6,0.71,0.75) - rd.y*0.2*fixed3(1.0,0.5,1.0) + 0.15*0.5;
+			//clouds
+			fixed4 res = raymarch(ro, rd, col, px, tex);
+			col = col * (1.0 - res.w) + res.xyz;
+			return fixed4(col, 1.0);
+		}
+		//----------------------------------------------------
+		VertexOutput vert(VertexInput v)
+		{
+			VertexOutput o;
+			o.pos = UnityObjectToClipPos(v.vertex);
+			o.uv = v.uv;
+			return o;
+		}
+		fixed4 frag(VertexOutput i) : SV_Target
+		{
+			fixed2 p = (0.5 - i.uv);
+		//view matrix
+		fixed3 ro = 4.0*normalize(fixed3(0.0,0.0,1.0));
+		fixed3 ta = fixed3(0.0, -1.0, 0.0);
+		fixed3x3 ca = setCamera(ro, ta, 0.0);
+		//ray matrix
+		fixed3 rd = mul(ca , normalize(fixed3(p.xy, 0.15)));
+		return render(ro, rd, p, _MainTex);
+	}
+	ENDCG
+   }
+	}
+}

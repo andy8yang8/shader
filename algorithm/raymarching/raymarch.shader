@@ -29,7 +29,7 @@ SubShader
 	/*
 	float sdEllipsoid(in fixed3 p, in fixed3 r)
 	{
-		return (length(p / r) - 1.0) * min(min(r.x, r.y), r.z);
+		return (l  ength(p / r) - 1.0) * min(min(r.x, r.y), r.z);
 	}
 	*/
 	//--------------------------------------------
@@ -45,23 +45,23 @@ SubShader
 	fixed raymarch(fixed3 ro, fixed3 rd, fixed max)
 	{
 		fixed depth = 0.0; //从 ro 出发
-		for (int i = 0; i < MARCHING_STEPS; i++) 
+		for (int i = 0; i < MARCHING_STEPS; i++)
 		{
 			//世界空间里沿着ray取样的坐标
 			fixed3 p = ro + rd * depth;
 			//Distance Field 的取样结果
 			fixed dist = map(p);
-			if (dist < EPSILON) 
+			if (dist < EPSILON)
 				//穿到“球”里了
 				return depth;
-			
+
 			depth += dist;//这里有优化空间
-			
+
 			if (depth >= max)
 				//也有
 				return max;
 		}
-		
+
 		return max;
 	}
 	//------------------------------------------------
@@ -82,7 +82,7 @@ SubShader
 		//Camera Origion
 		fixed3 ro = fixed3(0.0,0.0,-2.0);//（x,y,z） 坐标在 （0,0,-2）
 		fixed dist = raymarch(ro,rd, MAX_DIST);
-		if (dist > MAX_DIST - EPSILON) 
+		if (dist > MAX_DIST - EPSILON)
 		{
 			// Didn't hit anything
 			return fixed4(0.0, 0.0, 0.0, 0.0);
